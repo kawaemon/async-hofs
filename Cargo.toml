@@ -4,6 +4,8 @@ version = "0.1.0"
 description = "Various extention traits for providing asynchronous higher-order functions"
 edition = "2021"
 license = "MIT"
+repository = "https://github.com/kawaemon/async-hofs"
+categories = ["asynchronous", "no-std"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
