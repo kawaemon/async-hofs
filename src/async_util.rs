@@ -1,11 +1,11 @@
+use core::pin::Pin;
 use pin_project::pin_project;
-use std::pin::Pin;
 
 macro_rules! ready {
     ($poll: expr) => {
         match $poll {
-            std::task::Poll::Ready(r) => r,
-            std::task::Poll::Pending => return std::task::Poll::Pending,
+            core::task::Poll::Ready(r) => r,
+            core::task::Poll::Pending => return core::task::Poll::Pending,
         }
     };
 }
