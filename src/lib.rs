@@ -1,6 +1,6 @@
 #![cfg_attr(not(test), no_std)]
 
-//! Various extention traits for async-version iterator utility functions.
+//! Various extention traits for providing asynchronous higher-order functions.
 //! Currently [`map`] function is implemented to [`Result`], [`Option`],
 //! [`Iterator`] and [`Stream`].
 //!
