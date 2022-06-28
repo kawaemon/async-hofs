@@ -1,12 +1,16 @@
 # async-hofs
 Various extention traits for providing asynchronous higher-order functions.
 
-[![Crates.io][crates-badge]][crates-url]
+[![crates.io][crates-badge]][crates-url]
+[![docs.rs][docs-badge]][docs-url]
 [![MIT licensed][mit-badge]][mit-url]
 [![CI Status][actions-badge]][actions-url]
 
 [crates-badge]: https://img.shields.io/crates/v/async-hofs.svg?style=for-the-badge
 [crates-url]: https://crates.io/crates/async-hofs
+
+[docs-badge]: https://img.shields.io/docsrs/async-hofs?style=for-the-badge&label=docs.rs
+[docs-url]: https://docs.rs/async-hofs
 
 [mit-badge]: https://img.shields.io/badge/license-MIT-blue.svg?style=for-the-badge
 [mit-url]: https://github.com/kawaemon/async-hofs/blob/master/LICENSE
