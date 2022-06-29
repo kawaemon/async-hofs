@@ -25,6 +25,7 @@
 //! ```
 
 mod async_util;
+mod foo;
 pub mod iter;
 pub mod option;
 pub mod result;

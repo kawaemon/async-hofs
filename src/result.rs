@@ -1,7 +1,6 @@
 use core::future::Future;
-use core::pin::Pin;
-use core::task::{Context, Poll};
-use pin_project::pin_project;
+
+use crate::foo::{Foo, Id, MapOk};
 
 pub trait AsyncMapExt<T, E> {
     /// Basically same as [`Result::map`], but it accepts closure that returns [`Future`]
@@ -28,7 +27,10 @@ pub trait AsyncMapExt<T, E> {
     /// );
     /// # }
     /// ```
-    fn async_map<TFn, TFuture>(self, f: TFn) -> AsyncMap<T, E, TFn, TFuture>
+    fn async_map<TFn, TFuture>(
+        self,
+        f: TFn,
+    ) -> Foo<TFn, T, TFuture, MapOk<TFuture::Output, E>, Result<TFuture::Output, E>>
     where
         TFn: FnOnce(T) -> TFuture,
         TFuture: Future;
@@ -69,104 +71,41 @@ pub trait AsyncMapExt<T, E> {
     /// );
     /// # }
     /// ```
-    fn async_and_then<U, TFn, TFuture>(self, f: TFn) -> AsyncAndThen<T, E, TFn, TFuture>
+    fn async_and_then<U, TFn, TFuture>(
+        self,
+        f: TFn,
+    ) -> Foo<TFn, T, TFuture, Id<TFuture::Output>, Result<U, E>>
     where
         TFn: FnOnce(T) -> TFuture,
         TFuture: Future<Output = Result<U, E>>;
 }
 
-#[doc(hidden)]
-#[pin_project(project = AsyncMapProj)]
-pub enum AsyncMap<T, E, TFn, TFuture> {
-    Err(Option<E>),
-    Pending(Option<(T, TFn)>),
-    Polling(#[pin] TFuture),
-}
-
-impl<T, U, E, TFn, TFuture> Future for AsyncMap<T, E, TFn, TFuture>
-where
-    TFn: FnOnce(T) -> TFuture,
-    TFuture: Future<Output = U>,
-{
-    type Output = Result<U, E>;
-
-    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        use AsyncMapProj::*;
-
-        match self.as_mut().project() {
-            Err(e) => Poll::Ready(Result::Err(e.take().expect("AsyncMap::Err polled twice"))),
-
-            Pending(payload) => {
-                let (x, f) = payload.take().expect("AsyncMap::Pending polled twice");
-                let future = f(x);
-                self.set(AsyncMap::Polling(future));
-                self.poll(cx)
-            }
-
-            Polling(future) => future.poll(cx).map(Ok),
-        }
-    }
-}
-
-#[doc(hidden)]
-#[pin_project(project = AsyncAndThenProj)]
-pub enum AsyncAndThen<T, E, TFn, TFuture> {
-    Err(Option<E>),
-    Pending(Option<(T, TFn)>),
-    Polling(#[pin] TFuture),
-}
-
-impl<T, U, E, TFn, TFuture> Future for AsyncAndThen<T, E, TFn, TFuture>
-where
-    TFn: FnOnce(T) -> TFuture,
-    TFuture: Future<Output = Result<U, E>>,
-{
-    type Output = Result<U, E>;
-
-    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        use AsyncAndThenProj::*;
-
-        match self.as_mut().project() {
-            Err(e) => Poll::Ready(Result::Err(
-                e.take().expect("AsyncAndThen::Err polled twice"),
-            )),
-
-            Pending(payload) => {
-                let (x, f) = payload.take().expect("AsyncAndThen::Pending polled twice");
-                let future = f(x);
-                self.set(AsyncAndThen::Polling(future));
-                self.poll(cx)
-            }
-
-            Polling(future) => match future.poll(cx) {
-                Poll::Ready(Result::Ok(v)) => Poll::Ready(Result::Ok(v)),
-                Poll::Ready(Result::Err(e)) => Poll::Ready(Result::Err(e)),
-                Poll::Pending => Poll::Pending,
-            },
-        }
-    }
-}
-
 impl<T, E> AsyncMapExt<T, E> for Result<T, E> {
-    fn async_map<TFn, TFuture>(self, f: TFn) -> AsyncMap<T, E, TFn, TFuture>
+    fn async_map<TFn, TFuture>(
+        self,
+        f: TFn,
+    ) -> Foo<TFn, T, TFuture, MapOk<TFuture::Output, E>, Result<TFuture::Output, E>>
     where
         TFn: FnOnce(T) -> TFuture,
         TFuture: Future,
     {
         match self {
-            Ok(v) => AsyncMap::Pending(Some((v, f))),
-            Err(e) => AsyncMap::Err(Some(e)),
+            Ok(v) => Foo::new(f, v),
+            Err(e) => Foo::no_action(Err(e)),
         }
     }
 
-    fn async_and_then<U, TFn, TFuture>(self, f: TFn) -> AsyncAndThen<T, E, TFn, TFuture>
+    fn async_and_then<U, TFn, TFuture>(
+        self,
+        f: TFn,
+    ) -> Foo<TFn, T, TFuture, Id<TFuture::Output>, Result<U, E>>
     where
         TFn: FnOnce(T) -> TFuture,
         TFuture: Future<Output = Result<U, E>>,
     {
         match self {
-            Ok(v) => AsyncAndThen::Pending(Some((v, f))),
-            Err(e) => AsyncAndThen::Err(Some(e)),
+            Ok(v) => Foo::new(f, v),
+            Err(e) => Foo::no_action(Err(e)),
         }
     }
 }
